@@ -30,6 +30,14 @@ def rpca(in_biom: str, output_dir: str,
     def sample_filter(val, id_, md): return sum(val) > min_sample_depth
     table = table.filter(sample_filter, axis='sample')
     table = table.to_dataframe().T.drop_duplicates()
+    # rclr for saving the transformed OTU table (RSC edited)
+    tablefit = rclr().fit_transform(table.copy())
+    U,s,V = OptSpace().fit_transform(tablefit)
+    tablefit = np.dot(np.dot(U, s), V.T)
+    tablefit = pd.DataFrame(tablefit.T, index=table.columns, columns=table.index)
+    with open(os.path.join(output_dir, 'rclr_OTUtable.txt'), 'w'):
+        tablefit.to_csv(os.path.join(output_dir, 'rclr_OTUtable.txt'), sep='\t', index_label='OTU_ID')
+    
     # rclr preprocessing and OptSpace (RPCA)
     opt = OptSpace(rank=rank).fit(rclr().fit_transform(table.copy()))
     rename_cols = {i - 1: 'PC' + str(i) for i in range(1, rank + 1)}
